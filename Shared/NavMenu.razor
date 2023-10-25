@@ -1,0 +1,67 @@
+﻿<style>
+    .nav a {
+        text-decoration: none;
+    }
+
+    .nav-item:last-of-type[b-y0nwm7w2vo] {
+        padding-bottom: 0rem;
+    }
+</style>
+
+<div class="top-row ps-3 navbar navbar-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">Client Administration</a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+    </div>
+</div>
+
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                <span class="oi oi-home" aria-hidden="true"></span>Home
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/ClientApps" @onclick="()=>expandSubClient= !expandSubClient" Match="NavLinkMatch.All">
+                <span class="oi oi-person" aria-hidden="true"></span>Clients
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/UserLookup" @onclick="()=>expandSubUser= !expandSubUser" Match="NavLinkMatch.All">
+                <span class="oi oi-person" aria-hidden="true"></span>Users
+            </NavLink>
+            @if (expandSubUser)
+            {
+                <ul class="nav flex-column">
+                    <li class="nav-item px-3">
+                        <NavLink class="expand-menu" href="/UserLookup" Match="NavLinkMatch.All">
+                            <span class="oi oi-chevron-right" aria-hidden="true"></span>User Lookup
+                        </NavLink>
+                    </li>
+                    <li class="nav-item px-3">
+                        <NavLink class="expand-menu" href="/Tokens" Match="NavLinkMatch.All">
+                            <span class="oi oi-chevron-right" aria-hidden="true"></span>Tokens
+                        </NavLink>
+                    </li>
+                </ul>
+            }
+        </div>
+    </nav>
+</div>
+
+@code {
+    private bool _collapseNavMenu = true;
+    private bool expandSubClient;
+    private bool expandSubUser;
+
+    private string? NavMenuCssClass => _collapseNavMenu ? "collapse" : null;
+
+    private void ToggleNavMenu()
+    {
+        _collapseNavMenu = !_collapseNavMenu;
+    }
+
+}

@@ -1,0 +1,208 @@
+@page "/UserLookup"
+@using ClientAdminSample.AmeriFind
+@using ClientAdminSample.AmeriFind.jBASEApi
+@using ClientAdminSample.Models
+@using System.Reflection
+@using System.Text.RegularExpressions
+
+@code
+{
+    private User _user = new();
+    private readonly List<KeyValuePair<string, string>> _dataList = new();
+}
+
+<h2>User Lookup</h2>
+
+<div>
+    <p>Enter a account number and user ID to lookup.</p>
+    <EditForm Model="@_userLookupModel" OnValidSubmit="@LookupUser">
+        <p>
+            <label>
+                Account Number:
+                <InputText class="form-control" maxlength="5" @bind-Value="_userLookupModel.AccountNumber"/>
+            </label>
+        </p>
+
+        <p>
+            <label>
+                User ID:
+                <InputText class="form-control" style="text-transform: uppercase;" maxlength="50" @bind-Value="_userLookupModel.UserId"/>
+            </label>
+        </p>
+
+        <DataAnnotationsValidator/>
+        <ValidationSummary/>
+
+        <button type="submit">Submit</button>
+    </EditForm>
+</div>
+
+@if (_showLookupResults)
+{
+    <br />
+    <h3>User Information - @_user.Id</h3>
+    <br />
+    <ResultsTable DataTable="@_dataList" ShowTimeStamp="true"/>
+}
+
+@code {
+    private bool _showLookupResults;
+
+    private readonly UserLookupModel _userLookupModel = new();
+
+    private void LookupUser()
+    {
+        if (IsValid())
+        {
+            try
+            {
+                _user = GetUserInfo(_userLookupModel.AccountNumber, _userLookupModel.UserId);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+            if (!string.IsNullOrEmpty(_user.Id))
+            {
+                ProcessUerObjectAttributes();
+                _showLookupResults = true;
+            }
+        }
+    }
+
+    private bool IsValid()
+    {
+        return !string.IsNullOrWhiteSpace(_userLookupModel.AccountNumber) && !string.IsNullOrWhiteSpace(_userLookupModel.UserId);
+    }
+
+    private static User GetUserInfo(string account, string userName, string ipAddress = "", Guid workstationId = new())
+    {
+        var user = new User();
+
+        var parameters = new Dictionary<string, object>()
+        {
+            {"Account", account},
+            {"UserID", userName.ToUpper()}
+        };
+
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            parameters.Add("IpAddress", ipAddress);
+        }
+
+        if (workstationId != Guid.Empty)
+        {
+            parameters.Add("WorkstationId", workstationId.ToJBaseString());
+        }
+
+        var requestBody = new jBASEApiRequestBody("GetUserInfo", parameters).ParameterString;
+
+        var response = jBASEApi.GetResponse(requestBody);
+
+        if (response.IsSuccessful)
+        {
+            if (response.Content != null)
+            {
+                user = User.FromJson(response.Content);
+            }
+
+            if (user.ApiStatus == false)
+            {
+                Console.Out.WriteLine(user.ApiStatusMessage);
+            }
+            else
+            {
+                user.Account = account;
+                user.Id = userName;
+            }
+        }
+        else
+        {
+            Console.Out.WriteLine("There was a problem processing your request.<br /> Please wait 5 minutes and try again. EC84");
+        }
+
+        return user;
+    }
+
+    private void ProcessUerObjectAttributes()
+    {
+        if (string.IsNullOrEmpty(_user.Name)) return;
+
+        _dataList.Clear();
+
+        var type = _user.GetType();
+        var properties = type.GetProperties().Where(p => p.CanRead);
+
+        Func<PropertyInfo, object> getValue = p => p.GetIndexParameters().Any()
+            ? p.PropertyType.Name + "[]"
+            : p.GetValue(_user, null);
+
+        var items = (from p in properties
+            select new KeyValuePair<string, object>(
+                p.Name, getValue(p))).ToArray().OrderBy(x => x.Key);
+
+    //move items into a List to prevent enumerating the items list multiple times below
+        var attributes = items.ToList();
+
+        if (attributes.None()) return;
+
+        foreach (var attribute in attributes)
+        {
+    //if the items in the list below, then don't try to display it
+            if (attribute.Key.In(
+                "Password",
+                "NeedsMultifactor",
+                "MultifactorDescription",
+                "MultifactorAppSecret",
+                "VerifyIp",
+                "VerifyWs",
+                "CurrentUser",
+                "ApiStatus",
+                "ErrorCode",
+                "ResponseCode",
+                "Status"
+                ))
+            {
+                continue;
+            }
+
+            var key = Regex.Replace(attribute.Key, "([a-z](?=[A-Z]|[0-9])|[A-Z](?=[A-Z][a-z]|[0-9])|[0-9](?=[^0-9]))", "$1 ");
+
+            var data = "";
+
+            if (attribute.Value != null)
+            {
+                switch (attribute.Key)
+                {
+                    case "NavigationOptions":
+    //split the string into a more readable list ordered alphabetically
+                        data = attribute.Value.ToString().Split(',').OrderBy(x => x).ToDelimitedString();
+                        break;
+                    case "PasswordLastChangeDate":
+    //remove the time portion since we don't log time with password changes
+                        data = attribute.Value.ToString().Replace(" 12:00:00 AM", "");
+                        break;
+                    case "MultifactorBypassCookieMaxAge":
+                        if (int.TryParse(attribute.Value.ToString(), out var result))
+                        {
+                            data = result + " seconds (" + result / 3600 + " hours)";
+                        }
+                        else
+                        {
+                            data = attribute.Value.ToString();
+                        }
+                        break;
+                    default:
+                        data = attribute.Value.ToString();
+                        break;
+                }
+            }
+
+            var kvp = new KeyValuePair<string, string>(key, data ?? string.Empty);
+            _dataList.Add(kvp);
+        }
+    }
+
+}

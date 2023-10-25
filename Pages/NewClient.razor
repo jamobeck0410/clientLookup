@@ -1,0 +1,781 @@
+﻿@page "/NewClient"
+@using ClientAdminSample.AmeriFind;
+@using ClientAdminSample.AmeriFind.jBASEApi;
+@using ClientAdminSample.Models;
+@using System.Reflection;
+@using System.Text.RegularExpressions;
+@using System.Net.Http.Json
+
+<style>
+    .tab {
+        overflow: hidden;
+        background-color: #fff;
+        border-bottom: solid 1px darkgrey;
+        z-index: 0;
+    }
+
+        .tab button {
+            background-color: inherit;
+            float: left;
+            border: none;
+            outline: none;
+            cursor: pointer;
+            padding: 10px 12px;
+            font-size: 17px;
+            border-right: 1px solid transparent;
+            border-top: 1px solid transparent;
+            border-left: 1px solid transparent;
+        }
+
+            .tab button:hover {
+                border-top: 1px solid lightgrey;
+                border-left: 1px solid lightgrey;
+                border-right: 1px solid lightgrey;
+                border-top-left-radius: .3rem;
+                border-top-right-radius: .3rem;
+               
+            }
+            .tab button:focus {
+                border-top: 1px solid darkgrey;
+                border-left: 1px solid darkgrey;
+                border-right: 1px solid darkgrey;
+                border-top-left-radius: .3rem;
+                border-top-right-radius: .3rem;
+                z-index: 3;
+            }
+         .tabcontent {
+        padding: 20px 6px;
+        border-top: none;
+    }
+
+.form-group {
+    padding-left: 0px;
+    padding-top: 20px;
+}
+.tabcontent .row .input_section_heading .form-control {
+    padding: 0 0.75rem;
+    background: #fff;
+    opacity: 0;
+}
+.tabcontent .row .input_section_heading .form-control:disabled, .tabcontent .row .input_section_heading .form-control[readonly]{
+    background: #fff;
+    opacity: 1;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    font-size: 20px;
+}
+.tabcontent .row .input_section_heading .form-control:focus {
+    box-shadow: none;
+}
+.p-2 .row .radio_lbl {
+    width: 35px;
+    padding-left: 5px;
+    padding-right: 15px;
+}
+.p-2 .row .input-large{
+    width: 300px;
+    padding-left: 0px;
+}
+.p-2 .row .input-medium {
+    width: 200px;
+    padding-left: 0px;
+}
+.p-2 .row .input-small {
+    width: 100px;
+    padding-left: 0px;
+}
+.p-2 .row .input-ex-small {
+    width: 75px;
+    padding-left: 0px;
+}
+.p-2 .row .lbl-small {
+    width: 100px;
+}
+.p-2 .row .tab_section_heading {
+    vertical-align: bottom;
+    justify-content: center;
+    text-align: end;
+}
+.p-2 .row .lbl-heading {
+    width: auto;
+    padding-right: 0;
+    font-size: 20px;
+}
+.p-2 .lbl-medium {
+    width: 150px;
+}
+.p-2 .lbl-lg {
+    width: 250px;
+    
+}
+.p-2 .tab_heading_alt {
+    width: 550px;
+}
+.p-2 .tab_heading_alt input {
+    font-size: 20px;
+}
+.tabcontent .form-lrg-scrn {
+    max-width: 800px;
+}
+.show-Results ul {
+    padding-left: 20px;
+    padding-top: 20px;
+}
+
+.tabcontent .p-2 .form-group #more_btn {
+    float: right;
+}
+.tabcontent .show-Results .p-2 .billing_detailed .radio_toggle{
+    vertical-align: middle;
+}
+.tabcontent .show-Results .p-2 .billing_detailed .row .radio_column_adj{
+    padding-right: 220px;
+}
+.tabcontent .show-Results .p-2 .billing_detailed .row .radio_btn {
+    width: 20px;
+}
+.radio_toggle .valid.modified:not([type=checkbox]), .radio_toggle .invalid.modified:not([type=checkbox]),
+.tabcontent .tab_heading_alt .invalid, .tabcontent .tab_heading_alt .valid
+{
+    outline: 0px;
+}
+.tabcontent .row .input-section-heading .form-control .invalid, .tabcontent .row .input-section-heading .form-control .invalid {
+    border: none;
+}
+.tabcontent .row span {
+    padding-left: 5px;
+}
+.tabcontent .row .align-equifax, .tabcontent .row .align-license {
+    margin-right: 200px;
+}
+</style>
+@code
+{
+    // private Client _client = new();
+    private Client client = new();
+    private readonly List<KeyValuePair<string, string>> _dataList = new();
+}
+<div class="tab">
+    <button @onclick="(x=>DisplayTab(1))">Client Lookup</button>
+    <button @onclick="(x=>DisplayTab(2))">Billing</button>
+    <button @onclick="(x=>DisplayTab(3))">General</button>
+    <button @onclick="(x=>DisplayTab(4))">Remarks</button>
+    <button @onclick="(x=>DisplayTab(5))">Print</button>
+    <div class="tab-Fill">
+        <div class="tab-Expand"></div>
+    </div>
+</div>
+
+@if (tab1)
+{
+    <div class="tabcontent">
+        <div hidden="@_hide">
+        <h2>Client lookup</h2>
+        <p>Enter an account number to lookup.</p>
+        <EditForm Model="@_clientLookupModel" OnValidSubmit="@LookupClient" OnInvalidSubmit="@StaticLookup">
+            <p>
+                <label>
+                    Account Number:
+                    <InputText class="form-control" maxlength="5" @bind-Value="_clientLookupModel.ClientNumber" />
+                </label>
+            </p>
+
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+          <button class="btn btn-primary" onclick="@ToggleForm" type="submit">Submit</button>
+        </EditForm>
+    </div>
+
+    <div class="show-Results" hidden="@_show">
+
+        <h1 class="p-2">Client Result</h1>
+
+            <EditForm Model="@client" class="p-2 form-lrg-scrn " OnValidSubmit="@ValidateClient" OnInvalidSubmit="@StaticResult">
+            
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Account:</label>
+                <div class="input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.Account" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Short Name:</label>
+                <div class="input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.ShortName" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Full Name:</label>
+                <div class="input-large">
+                    <InputText type="text" class="form-control" @bind-Value="client.FullName" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Address 1:</label>
+                <div class="input-large">
+                    <InputText type="text" class="form-control" @bind-Value="client.Address1" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Address 2:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.Address2" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">City:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.City" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">State:</label>
+                <div class="input-ex-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.State" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Zip:</label>
+                <div class="input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.Zip" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Industry:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.Industry" />
+                </div>
+            </div>
+            <div class="row">
+                <label class="lbl-medium col-form-label">Term. Date:</label>
+                <div class="input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.TerminationDate" />
+                </div>
+            </div>
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+ @if (_showLookupResults)
+    {
+    <!--  -->
+    <ResultsTable DataTable="@_dataList" ShowTimeStamp="true"/>
+    }
+            <div class="form-group">
+                <button type="submit" onclick="@ToggleForm" id="client_result_btn" class="btn btn-primary">Save</button>
+                <hr />
+            </div>
+        </EditForm>
+    </div>   
+    
+    </div>
+
+}
+@if (tab2)
+{
+    <div class="tabcontent">
+      
+       <div class="show-Results">
+            <EditForm Model="@client" class="p-2 form-lrg-scrn" OnValidSubmit="@LookupClient" OnInvalidSubmit="@StaticResult">   
+            <div class="row mb-3">
+                <label class="lbl-heading col-form-label">Billing <span>-</span>  </label>
+                <div class="input-large input_section_heading">
+                    <InputText type="text" class="form-control" readonly @bind-Value="client.ShortName" />
+                </div>  
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Billing Name:</label>
+                <div class="input-large">
+                    <InputText type="text" class="form-control" @bind-Value="client.BillNameZip" />
+                </div>  
+                <label class="lbl-lg tab_section_heading">Authorize.net codes</label>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Billling Address 1:</label>
+                <div class="input-large">
+                    <InputText type="text" class="form-control" @bind-Value="client.BillAddress1" />
+                </div>
+                <label class="lbl-medium col-form-label">Client Profile:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.ClientProfile" />
+                </div
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Billing Address 2:</label>
+                <div class="input-large">
+                    <InputText type="text" class="form-control" @bind-Value="client.BillAddress2" />
+                </div> 
+                <label class="lbl-medium col-form-label">Payment Profile:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.PaymentProfile" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Billing City:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.BillCity" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Billing State:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.BillState" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Billing Zip:</label>
+                <div class="input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.BillZip" />
+                </div>
+            </div>
+          <div hidden="@_bill_hide">
+            <div class="billing_detailed">
+                <div class="row mb-3">
+                    <label class="lbl-medium col-form-label">Past Due Status:</label>
+                    <div class="input-large">
+                        <InputText type="text" class="form-control" @bind-Value="client.PastDueStatus" />
+                    </div> 
+                    <label class="lbl-medium col-form-label">Billing Cycle:</label>
+                    <div class="input-medium">
+                        <InputText type="text" class="form-control" @bind-Value="client.BillingCycle" />
+                    </div>
+                </div>
+                <div class="row mb-3 radio_toggle">
+                       <label class="lbl-medium col-form-label">Invoice #:</label>
+                      <InputRadioGroup Name="FooBar"  @bind-Value="@client.PrintInvoice">
+                        <InputRadio Name="FooBar" class="radio_btn" Value="@true" /><label class="radio_lbl col-form-label">Yes</label>
+                        <InputRadio Name="FooBar" class="radio_btn" Value="@false" /><label class="radio_lbl col-form-label radio_column_adj">No</label>
+                      </InputRadioGroup>
+
+                      <label  class="lbl-medium col-form-label">Suppress Details:</label>
+                      <InputRadioGroup Name="FooBar"  @bind-Value="@client.SuppressDetails">
+                        <InputRadio Name="FooBar" class="radio_btn" Value="@true" /><label class="radio_lbl col-form-label">Yes</label>
+                        <InputRadio Name="FooBar" class="radio_btn" Value="@false" /><label class="radio_lbl col-form-label ">No</label>
+                      </InputRadioGroup>
+                </div>
+                <div class="row mb-3">
+                     <label class="lbl-medium col-form-label">Taxable:</label>
+                      <InputRadioGroup Name="FooBar" @bind-Value="@client.Taxable">
+                      <InputRadio Name="FooBar" class="radio_btn" Value="@true" /><label class="radio_lbl col-form-label">Yes</label>
+                      <InputRadio Name="FooBar" class="radio_btn" Value="@false" /><label class="radio_lbl col-form-label radio_column_adj">No</label>
+                      </InputRadioGroup>
+                    <label class="lbl-medium col-form-label">Invoice Email:</label>
+                    <div class="input-medium">
+                        <InputText type="text" class="form-control" @bind-Value="client.InvoiceEmail" />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="lbl-medium col-form-label">Detail Email:</label>
+                    <div class="input-large">
+                        <InputText type="text" class="form-control" @bind-Value="client.DetailEmail" />
+                    </div> 
+                    <label class="lbl-medium col-form-label">Last Payment:</label>
+                    <div class="input-medium">
+                        <InputText type="text" class="form-control" readonly @bind-Value="client.LastPaymentDate" />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <label class="lbl-medium col-form-label">Current Balance:</label>
+                    <div class="input-large">
+                        <InputText type="text" class="form-control" readonly @bind-Value="client.CurrentBalance" />
+                    </div> 
+                    <label class="lbl-medium col-form-label">Purchase Order:</label>
+                    <div class="input-medium">
+                        <InputText type="text" class="form-control" readonly @bind-Value="client.PurchaseOrder" />
+                    </div>
+                </div>
+                <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Setup Fee:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" readonly @bind-Value="client.SetUpFee" />
+                </div>
+            </div>
+            </div>
+           </div>
+           <DataAnnotationsValidator />
+           <ValidationSummary />
+ 
+           <div class="form-group">
+                <button class="btn btn-primary" id="submit_btn" onclick="@ToggleForm" type="submit">Save</button>
+                <button class="btn btn-primary" id="more_btn" onclick="@ToggleBilling">@_bill_btn_name</button> 
+           </div>
+           
+          </EditForm>
+    </div>
+   </div>
+
+}
+@if (tab3)
+{
+    <div class="tabcontent">
+      <div class="show-Results">
+            <EditForm Model="@client" class="p-2 form-lrg-scrn" OnValidSubmit="@LookupClient" OnInvalidSubmit="@StaticResult">   
+            <div class="row mb-3">
+                <label class="lbl-heading col-form-label">General <span> - </span></label>
+                <div class="input-large input_section_heading">
+                    <InputText type="text" class="form-control" readonly @bind-Value="client.ShortName" />
+                </div>  
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Start Date:</label>
+                <div class="align-license input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.StarsDate" />
+                </div>
+                <label class=" lbl-medium col-form-label">Prof. License:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.ProfessionalLicense" />
+                </div
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Termination Date:</label>
+                <div class="align-equifax input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.TerminationDate" />
+                </div> 
+                <label class=" lbl-medium col-form-label">GBL Equifax:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.PaymentProfile" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Case Description:</label>
+                <div class="input-large">
+                    <InputText type="text" class="form-control" @bind-Value="client.CaseDescription" />
+                </div> 
+                <label class="lbl-medium col-form-label">Case Format:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.CaseFormat" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Industry</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.Industry" />
+                </div>
+            </div> 
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Company ID:</label>
+                <div class="input-medium">
+                    <InputText type="text" class="form-control" @bind-Value="client.CompanyID" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">System Code:</label>
+                <div class="input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.SystemCode" />
+                </div>
+            </div>
+            <div class="row mb-3">
+                <label class="lbl-medium col-form-label">Suppress Price:</label>
+                <div class="input-small">
+                    <InputText type="text" class="form-control" @bind-Value="client.SuppressPrice" />
+                </div>
+            </div>
+            
+           <DataAnnotationsValidator />
+           <ValidationSummary />
+ 
+           <div class="form-group">
+                <button class="btn btn-primary" id="submit_btn" onclick="@ToggleForm" type="submit">Save</button>
+           </div>
+           
+          </EditForm>
+    </div>
+   </div>
+}
+@if (tab4)
+{
+    <div class="tabcontent">
+        <h3>Remarks</h3>
+    </div>
+}
+@if (tab5)
+{
+    <div class="tabcontent">
+        <h3>Print</h3>
+    </div>
+}
+
+
+
+
+@code {
+    private bool tab1 = true;
+    private bool tab2 = false;
+    private bool tab3 = false;
+    private bool tab4 = false;
+    private bool tab5 = false;
+
+    public void DisplayTab(int TabNumber)
+    {
+        switch (TabNumber)
+        {
+            case 1:
+                this.tab1 = true;
+                this.tab2 = false;
+                this.tab3 = false;
+                this.tab4 = false;
+                this.tab5 = false;
+                break;
+            case 2:
+                this.tab1 = false;
+                this.tab2 = true;
+                this.tab3 = false;
+                this.tab4 = false;
+                this.tab5 = false;
+                break;
+            case 3:
+                this.tab1 = false;
+                this.tab2 = false;
+                this.tab3 = true;
+                this.tab4 = false;
+                this.tab5 = false;
+                break;
+            case 4:
+                this.tab1 = false;
+                this.tab2 = false;
+                this.tab3 = false;
+                this.tab4 = true;
+                this.tab5 = false;
+                break;
+            case 5:
+                this.tab1 = false;
+                this.tab2 = false;
+                this.tab3 = false;
+                this.tab4 = false;
+                this.tab5 = true;
+                break;
+        }
+    }
+
+    private bool _hide { get; set; } = false;
+    private bool _show { get; set; } = true; 
+    private readonly ClientLookupModel _clientLookupModel = new();
+    private readonly Client _client = new();
+    // public bool _userInfo { get; set; } = true;
+
+    private void ToggleForm()
+    {
+        _hide = !_hide;
+        if (_hide)
+        {
+            _show = false;
+            _showLookupResults = true;
+
+        }
+        else
+        {
+            _show = true;
+            _clientLookupModel.ClientNumber = default;
+            _showLookupResults = false;
+        }
+    }
+
+    private bool _showLookupResults;
+    private bool _bill_hide { get; set; } = true;
+    private string _bill_btn_name { get; set; } = "More Details";
+
+    private void ToggleBilling()
+    {
+        _bill_hide = !_bill_hide;
+        if (_bill_hide)
+        {
+            _bill_btn_name = "More Details";
+        }
+        else
+        {
+            _bill_btn_name = "Less Details";
+        }
+    }
+    private void LookupClient()
+    {
+        if (IsValid())
+        {
+            try
+            {
+                client = GetClientInfo(_clientLookupModel.ClientNumber);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+            if (!string.IsNullOrEmpty(client.Account))
+            {
+                return;
+            }
+        }
+    }
+
+    private void ValidateClient()
+    {
+        if (IsValid())
+        {
+            try
+            {
+                client = GetClientInfo(_client.Account);
+                client = GetClientInfo(_client.ShortName);
+                client = GetClientInfo(_client.FullName);
+                client = GetClientInfo(_client.Address1);
+                client = GetClientInfo(_client.City);
+                client = GetClientInfo(_client.State);
+                client = GetClientInfo(_client.Zip);
+                client = GetClientInfo(_client.Industry);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+        }
+    }
+
+    private void StaticLookup()
+    {
+        _hide = false;
+        _show = true;
+        // _showLookupResults = false;
+    }
+
+    private void StaticResult()
+    {
+        _hide = true;
+        _show = false;
+        _showLookupResults = true;
+        // _showLookupResults = true;
+    }
+
+    private bool IsValid()
+    {
+        return !string.IsNullOrWhiteSpace(_clientLookupModel.ClientNumber);
+    }
+
+    private static Client GetClientInfo(string account, string ipAddress = "", Guid workstationId = new())
+    {
+        var client = new Client();
+
+        var parameters = new Dictionary<string, object>()
+        {
+            {"Account", account},
+        };
+
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            parameters.Add("IpAddress", ipAddress);
+        }
+
+        if (workstationId != Guid.Empty)
+        {
+            parameters.Add("WorkstationId", workstationId.ToJBaseString());
+        }
+
+        var requestBody = new jBASEApiRequestBody("GetClientData", parameters).ParameterString;
+
+        var response = jBASEApi.GetResponse(requestBody);
+
+        if (response.IsSuccessful)
+        {
+            if (response.Content != null)
+            {
+                client = Client.FromJson(response.Content);
+            }
+
+            if (client.ApiStatus == false)
+            {
+                Console.Out.WriteLine(client.ApiStatusMessage);
+            }
+            else
+            {
+                client.Account = account;
+            }
+        }
+        else
+        {
+            Console.Out.WriteLine("There was a problem processing your request.<br /> Please wait 5 minutes and try again. EC84");
+        }
+
+        return client;
+    }
+
+    private void ProcessClientObjectAttributes()
+    {
+        if (string.IsNullOrEmpty(client.Account)) return;
+
+        _dataList.Clear();
+
+        var type = client.GetType();
+        var properties = type.GetProperties().Where(p => p.CanRead);
+
+        Func<PropertyInfo, object> getValue = p => p.GetIndexParameters().Any()
+            ? p.PropertyType.Name + "[]"
+            : p.GetValue(client, null);
+
+        var items = (from p in properties
+                     select new KeyValuePair<string, object>(
+                         p.Name, getValue(p))).ToArray().OrderBy(x => x.Key);
+
+        //move items into a List to prevent enumerating the items list multiple times below
+        var attributes = items.ToList();
+
+        if (attributes.None()) return;
+
+        foreach (var attribute in attributes)
+        {
+            if (attribute.Key.In(
+                "Password",
+                "NeedsMultifactor",
+                "MultifactorDescription",
+                "MultifactorAppSecret",
+                "VerifyIp",
+                "VerifyWs",
+                "CurrentUser",
+                "ApiStatus",
+                "ErrorCode",
+                "ResponseCode",
+                "Status"
+                ))
+            {
+                continue;
+            }
+
+            var key = Regex.Replace(attribute.Key, "([a-z](?=[A-Z]|[0-9])|[A-Z](?=[A-Z][a-z]|[0-9])|[0-9](?=[^0-9]))", "$1 ");
+
+            var data = "";
+
+            if (attribute.Value != null)
+            {
+                switch (attribute.Key)
+                {
+                    case "NavigationOptions":
+                        //split the string into a more readable list ordered alphabetically
+                        data = attribute.Value.ToString().Split(',').OrderBy(x => x).ToDelimitedString();
+                        break;
+                    case "PasswordLastChangeDate":
+                        //remove the time portion since we don't log time with password changes
+                        data = attribute.Value.ToString().Replace(" 12:00:00 AM", "");
+                        break;
+                    case "MultifactorBypassCookieMaxAge":
+                        if (int.TryParse(attribute.Value.ToString(), out var result))
+                        {
+                            data = result + " seconds (" + result / 3600 + " hours)";
+                        }
+                        else
+                        {
+                            data = attribute.Value.ToString();
+                        }
+                        break;
+                    default:
+                        data = attribute.Value.ToString();
+                        break;
+                }
+            }
+             var kvp = new KeyValuePair<string, string>(key, data ?? string.Empty);
+            _dataList.Add(kvp);
+        }
+    }
+   private bool isDisable { get; set; }
+
+   private void onDisable()
+      {
+       this.isDisable = false;
+      }
+}

@@ -1,0 +1,1287 @@
+﻿@page "/ClientApps"
+@using Newtonsoft.Json;
+@using ClientAdminSample.AmeriFind.Json;
+@using ClientAdminSample.Models;
+@using ClientAdminSample.AmeriFind;
+@using ClientAdminSample.AmeriFind.jBASEApi;
+@using System.Reflection;
+@using System.Text.RegularExpressions;
+@using System.Net.Http.Json;
+@using MudBlazor.Examples.Data.Models;
+@using Newtonsoft.Json;
+@inject NavigationManager NavigationManager;
+@inject IWebHostEnvironment Environment;
+@inject IJSRuntime jsRuntime;
+@using MudBlazor;
+
+
+<style>
+    .selected {
+        background-color: #1E88E5 !important;
+    }
+    
+    .selected > td {
+        color: white !important;
+    }
+
+    .selected > td .mud-input {
+        color: white !important;
+    }
+ 
+    .displayClientResult .arrange_btn {
+        margin: 0 auto;
+        display: inline;
+    }
+    .displayClientResult .tab {
+        overflow: hidden;
+        background-color: #fff;
+        border-bottom: solid 1px darkgrey;
+        z-index: 0;
+    }
+    .displayClientResult .tab button {
+        background-color: inherit;
+        float: left;
+        border: none;
+        outline: none;
+        cursor: pointer;
+        padding: 10px 12px;
+        font-size: 17px;
+        border-right: 1px solid transparent;
+        border-top: 1px solid transparent;
+        border-left: 1px solid transparent;
+    }
+   
+    .displayClientResult .tab button:hover {
+        border-top: 1px solid lightgrey;
+        border-left: 1px solid lightgrey;
+        border-right: 1px solid lightgrey;
+        border-top-left-radius: .3rem;
+        border-top-right-radius: .3rem;
+    }
+
+    .displayClientResult .tab button:focus {
+        border-top: 1px solid darkgrey;
+        border-left: 1px solid darkgrey;
+        border-right: 1px solid darkgrey;
+        border-top-left-radius: .3rem;
+        border-top-right-radius: .3rem;
+        z-index: 3;
+    }
+
+    .displayClientResult .tabcontent {
+        padding: 5px 6px;
+        border-top: none;
+    }
+
+    .displayClientResult .tabcontent .form-lrg-scrn {
+        max-width: 800px;
+    }
+
+    .displayClientResult .tabcontent .row {
+        --bs-gutter-x: 0rem;
+    }
+
+    .displayClientResult .tabcontent .input-small {
+        width: 100px;
+        padding-left: 0px;
+    }
+    .displayClientResult .tabcontent .form-floating {
+    padding-right: 10px;
+}
+    .form-floating > label {
+        color: grey;
+    }
+    .displayClientResult .tabcontent .form-floating > .form-control, .displayClientResult .tabcontent .frm-floating > .form-select {
+        height: 40px;
+    }
+
+    .displayClientResult .tabcontent .form-floating > .form-control {
+        padding: 0.5rem 0.75rem;
+    }
+
+    .displayClientResult .form-floating > .form-control {
+        padding: 1rem 0.75rem;
+    }
+
+    .displayClientResult .form-floating > .form-control, .displayClientResult .form-floating > .form-select {
+        height: calc(3.5rem + 2px);
+        line-height: 1.25;
+    }
+
+    .displayClientResult .tabcontent .input-medium {
+        width: 200px;
+        padding-left: 0px;
+    }
+
+    .displayClientResult .tabcontent .input-large {
+        width: 300px;
+        padding-left: 0px;
+    }
+
+    .displayClientResult .tabcontent .form-group {
+        padding-top: 0px;
+    }
+
+    .displayClientResult .p-2 .row .lbl-heading {
+        width: auto;
+        padding-right: 0;
+        font-size: 20px;
+    }
+
+    .displayClientResult .col-form-label {
+        padding-top: calc(0.375rem + 1px);
+        padding-bottom: calc(0.375rem + 1px);
+        margin-bottom: 0;
+        font-size: inherit;
+        line-height: 1.5;
+    }
+    .displayClientResult .tabcontent .row span {
+        padding-left: 5px;
+}
+
+    .displayClientResult .tabcontent .form-floating > .form-control:focus ~ label, .tabcontent .form-floating > .form-control:not(:placeholder-shown) ~ label, .tabcontent .form-floating > .form-select-label {
+        opacity: 1;
+        transform: scale(.75) translateY(-0.8rem) translateX(0.15rem);
+        margin: 0;
+        padding: 0 5px 0 5px;
+        background: #fff;
+        height: auto;
+        color: grey;
+    }
+
+    .displayClientResult .tabcontent .form-floating > label {
+        padding: .5rem .75rem;
+    }
+
+    .displayClientResult .form-control:disabled, .form-control[readonly] {
+        background-color: #fff;
+        opacity: 1;
+        border: none;
+        padding-top: 12px;
+    }
+
+    .displayClientResult .disableLookup .form-control:disabled {
+        background-color: lightgray;
+        opacity: 1;
+        padding-top: 12px;
+    }
+    .displayClientResult h2 {
+        padding-bottom: 10px;
+    }
+    h6 {
+        font-weight: 400;
+    }
+    #myForm {
+        padding-top: 5px;
+    }
+</style>
+@code{
+    //  private IEnumerable<Client> Clients = new List<Client>();
+    private List<Client> responseTable { get; set; } = new List<Client>();
+    private Client client = new();
+    private ClientBilling clientBilling = new();
+    private ClientGeneral clientGeneral = new();
+    private readonly ClientLookupModel _clientLookupModel = new();
+    private readonly List<KeyValuePair<string, string>> _dataList = new();
+    private string getTitle { get; set; }
+}
+<div class="displayClientResult">
+<div class="tabcontent disableLookup">
+<div class="show-Results">
+<div hidden="@_hide">
+    <h2>Client lookup</h2>
+    <h6>Enter an account number or name to lookup.</h6>
+    <h6>Name doesn't require an exacting value.</h6>
+                <script>
+                    var inp1 = document.getElementById("input1").enabled;
+                    var inp2 = document.getElementById("input2").enabled;               
+                </script>
+    <EditForm Model="@_clientLookupModel" id ="myForm" OnValidSubmit="@ToggleLookupResult" OnInvalidSubmit="@StaticLookup">     
+            <div class="row mb-3">
+                <div class="form-floating input-medium">
+                            <input type="text" id="input1" name="enterNumber" maxlength="5" class="form-control" placeholder="" @bind="_clientLookupModel.ClientNumber" />
+                    <label for="ClientNumber">Account Number</label>
+                </div>  
+            </div>
+                    <div class="row mb-3">
+                <div class="form-floating input-medium">
+                            <input type="text" id="input2" maxlength="50" name="enterName" class="form-control" placeholder="" @bind="_clientLookupModel.Name"/>
+                    <label for="ClientName">Client Name</label>         
+                </div>
+            </div>
+                    <script>
+
+                        var inp1 = document.getElementById("input1");
+                        inp1.addEventListener("input", function () {
+                            document.getElementById("input2").disabled = this.value != "";
+                        });
+                        var inp2 = document.getElementById("input2");
+                        inp2.addEventListener("input", function () {
+                            document.getElementById("input1").disabled = this.value != "";
+                        });
+                        
+                    </script>
+                    <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <button class="btn btn-primary" onclick="@ToggleLookupResult" type="submit">Submit</button>
+    </EditForm>
+</div>
+</div>
+</div>
+</div>
+ <div class="displayClientResult" hidden="@_displayClientNumberSearch">
+    <div hidden="@_show">
+        <div class="tab">
+            <button @onclick="(x=>DisplayTab(2))">General</button>
+            <button @onclick="(x=>DisplayTab(3))">Billing</button>
+            <button @onclick="(x=>DisplayTab(4))">General</button>
+            <button @onclick="(x=>DisplayTab(5))">Remarks</button>
+            <button @onclick="(x=>DisplayTab(6))">Print</button>
+            <div class="tab-Fill">
+                <div class="tab-Expand"></div>
+            </div>
+        </div>
+    </div>
+    @if (tab2)
+    {
+        <div class="tabcontent" hidden="@_show">
+            <div class="show-Results">
+                <EditForm Model="@client" id="client" class="p-2 form-lrg-scrn" OnValidSubmit="@NavigateToLookup">
+                   
+                    <div class="row mb-3">
+                        <label class="lbl-heading col-form-label">Client <span>-</span>  </label>
+                        <div class="input-large input_section_heading">
+                            <div class="clientTitle">
+                                <InputText type="text" class="form-control" id="textbox1" readonly @bind-Value="client.ShortName" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-small">
+                            <InputText type="text" class="form-control" id="Account" placeholder="" @bind-Value="client.Account" />
+                            <label for="Account">Account</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="ShortName" placeholder="" @bind-Value="client.ShortName" />
+                            <label for="ShortName">Short Name</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-large">
+                            <InputText type="text" class="form-control" id="FullName" placeholder="" @bind-Value="client.FullName" />
+                            <label for="FullName">Full Name</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-large">
+                            <InputText type="text" class="form-control" id="Address1" placeholder="" @bind-Value="client.Address1" />
+                            <label for="Address1">Address 1</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="Address2" placeholder="" @bind-Value="client.Address2" />
+                            <label for="Address2">Address 2</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="City" placeholder="" @bind-Value="client.City" />
+                            <label for="City">City</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="State" placeholder="" @bind-Value="client.State" />
+                            <label for="State">State</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-small">
+                            <InputText type="text" class="form-control" id="Zip" placeholder="" @bind-Value="client.Zip" />
+                            <label for="Zip">Zip</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="Industry" placeholder="" @bind-Value="client.Industry" />
+                            <ValidationMessage For="() => client.Industry"/>
+                            <label for="Industry">Industry</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="TerminationDate" placeholder="" @bind-Value="client.TerminationDate" />
+                            <ValidationMessage For="() => client.TerminationDate" />
+                            <label for="Termination Date">Termination Date</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary">Save</button>
+                        <hr />
+                    </div> 
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+                </EditForm>
+            </div>
+        </div>
+    }
+    @if (tab3)
+    {
+        <div class="tabcontent"  hidden="@_show">
+
+            <div class="show-Results">
+                <EditForm Model="@clientBilling" id="client1" class="p-2 form-lrg-scrn" OnValidSubmit="@NavigateToLookup">                    
+                    <div class="row mb-3">
+                        <label class="lbl-heading col-form-label">Billing <span>-</span>  </label>
+                        <div class="input-large input_section_heading">
+                            <InputText type="text" class="form-control" readonly @bind-Value="client.ShortName" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillNameZip" placeholder="" @bind-Value="clientBilling.BillNameZip" />
+                            <label for="BillNameZip">Billing Name</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <label class="lbl-lg tab_section_heading">Authorize.net codes</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillingAddress1" placeholder="" @bind-Value="clientBilling.BillAddress1" />
+                            <label for="BillingAddress1">Billing Address 1</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="ClientProfile" placeholder="" @bind-Value="clientBilling.ClientProfile" />
+                            <label for="ClientProfile">Client Profile</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillingAddress2" placeholder="" @bind-Value="clientBilling.BillAddress2" />
+                            <label for="BillingAddress2">Billing Address 2</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="Payment Profile" placeholder="" @bind-Value="clientBilling.PaymentProfile" />
+                            <label for="PaymentProfile">Payment Profile</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillCity" placeholder="" @bind-Value="clientBilling.BillCity" />
+                            <label for="BillCity">Billing City</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillState" placeholder="" @bind-Value="clientBilling.BillState" />
+                            <label for="BillState">Billing State</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillZip" placeholder="" @bind-Value="clientBilling.BillZip" />
+                            <label for="BillZip">Billing Zip</label>
+                        </div>
+                    </div>
+                    <div hidden="@_bill_hide">
+                        <div class="billing_detailed">
+                            <div class="row mb-3">
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="pastDueStatus" placeholder="" @bind-Value="clientBilling.PastDueStatus" />
+                                    <label for="pastDueStatus">Past Due Status</label>
+                                </div>
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="BillingCycle" placeholder="" @bind-Value="clientBilling.BillingCycle" />
+                                    <label for="BillingCycle">Billing Cycle</label>
+                                </div>
+                            </div>
+                            <div class="row mb-3 radio_toggle">
+                                <!-- <Switch @bind-Value="client.PrintInvoice" Label="Default switch checkbox input" />
+                                      <Switch @bind-Value="client.SuppressDetails" Label="Suppress Details" />
+                                </div>
+                                <div class="row mb-3">
+                                                <Switch @bind-Value="client.Taxable" Label="Taxable" />  -->
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="Invoice Email" placeholder="" @bind-Value="clientBilling.InvoiceEmail" />
+                                    <label for="InvoiceEmail">Invoice Email</label>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="DetailEmail" placeholder="" @bind-Value="clientBilling.DetailEmail" />
+                                    <label for="DetailEmail">Detail Email</label>
+                                </div>
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="LastPaymentDate" placeholder="" @bind-Value="clientBilling.LastPaymentDate" />
+                                    <label for="LastPaymentDate">Last Payment</label>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="CurrentBalance" placeholder="" @bind-Value="clientBilling.CurrentBalance" />
+                                    <label for="CurrentBalance">Current Balance</label>
+                                </div>
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="PurchaseOrder" placeholder="" @bind-Value="clientBilling.PurchaseOrder" />
+                                    <label for="PurchaseOrder">Purchase Order</label>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="form-floating input-medium">
+                                    <InputText type="text" class="form-control" id="SetupFee" placeholder="" @bind-Value="clientBilling.SetUpFee" />
+                                    <label for="SetupFee">Setup Fee</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>                  
+                        <div class="arrange_btn form-group">
+                            <button class="btn btn-primary" onclick = "Button1_Click" type="submit">Save</button>
+                            <button class="btn btn-primary"  onclick="@ToggleBilling">@_bill_btn_name</button>
+                        </div>
+                    <hr />
+                    <DataAnnotationsValidator />
+                    <ValidationSummary/>
+                </EditForm>
+            </div>
+        </div>
+    }
+    @if (tab4)
+    {
+        <div class="tabcontent" hidden="@_show">
+            <div class="show-Results">
+                <EditForm Model="@clientGeneral" id="client2" class="p-2 form-lrg-scrn" OnValidSubmit="@NavigateToLookup">
+                    <div class="row mb-3">
+                        <label class="lbl-heading col-form-label">General <span> - </span></label>
+                        <div class="input-large input_section_heading">
+                            <InputText type="text" class="form-control" readonly @bind-Value="client.ShortName" />
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="startDate" placeholder="" @bind-Value="clientGeneral.StarsDate" />
+                            <label for="startDate">Start Date</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="ProfLicense" placeholder="" @bind-Value="clientGeneral.ProfessionalLicense" />
+                            <label for="ProfLicense">Prof. License</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CompanyID" placeholder="" @bind-Value="clientGeneral.CompanyID" />
+                            <label for="CompanyID">Company ID</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="paymentProfile" placeholder="" @bind-Value="clientGeneral.PaymentProfile" />
+                            <label for="paymentProfile">Payment Profile</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CaseDescription" placeholder="" @bind-Value="clientGeneral.CaseDescription" />
+                            <label for="CaseDescription">Case Description</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CaseFormat" placeholder="" @bind-Value="clientGeneral.CaseFormat" />
+                            <label for="CaseFormat">Case Format</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CaseDescription" placeholder="" @bind-Value="clientGeneral.Referral" />
+                            <label for="CaseDescription">Case Description</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CaseFormat" placeholder="" @bind-Value="clientGeneral.PermissablePurpose" />
+                            <label for="CaseFormat">Case Format</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="SystemCode" placeholder="" @bind-Value="clientGeneral.SystemCode" />
+                            <label for="SystemCode">System Code</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="SuppressPrice" placeholder="" @bind-Value="clientGeneral.SuppressPrice" />
+                            <label for="SuppressPrice">Suppress Price</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <button id="btn-General" class="btn btn-primary"type="submit">Save</button>
+                      </div>
+                    <hr />
+                    <DataAnnotationsValidator />
+                    <ValidationSummary/>
+                    </EditForm>
+            </div>
+        </div>
+    }
+    @if (tab5)
+    {
+        <div class="tabcontent" hidden="@_show">
+          <div class="show-Results">
+            <div class="p-2 form-lrg-scrn">
+              <div class="row mb-3">
+                <label class="lbl-heading col-form-label">Remarks <span> - </span></label>
+                <div class="input-large input_section_heading">
+                    <InputText type="text" class="form-control" readonly @bind-Value="client.ShortName" />
+                </div>
+               </div>
+            </div>
+          </div>
+            <hr />
+        </div>
+    }
+    @if (tab6)
+    {
+        <div class="tabcontent" hidden="@_show">
+            <div class="show-Results">
+                <EditForm Model="@client" class="p-2 form-lrg-scrn">
+                    <div class="row mb-3">
+                        <label class="lbl-heading col-form-label">Print <span> - </span></label>
+                        <div class="input-large input_section_heading">
+                            <div class = "clientTitle">
+                            <InputText type="text" class="form-control" readonly @bind-Value="client.ShortName" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-small">
+                            <InputText type="text" class="form-control" id="Account" placeholder="" @bind-Value="client.Account" />
+                            <label for="Account">Account</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="ShortName" placeholder="" @bind-Value="client.ShortName" />
+                            <label for="ShortName">Short Name</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-large">
+                            <InputText type="text" class="form-control" id="FullName" placeholder="" @bind-Value="client.FullName" />
+                            <label for="FullName">Full Name</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-large">
+                            <InputText type="text" class="form-control" id="Address1" placeholder="" @bind-Value="client.Address1" />
+                            <label for="Address1">Address 1</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="Address2" placeholder="" @bind-Value="client.Address2" />
+                            <label for="Address2">Address 2</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="City" placeholder="" @bind-Value="client.City" />
+                            <label for="City">City</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="State" placeholder="" @bind-Value="client.State" />
+                            <label for="State">State</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-small">
+                            <InputText type="text" class="form-control" id="Zip" placeholder="" @bind-Value="client.Zip" />
+                            <label for="Zip">Zip</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="Industry" placeholder="" @bind-Value="client.Industry" />
+                            <label for="Industry">Industry</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="TerminationDate" placeholder="" @bind-Value="client.TerminationDate" />
+                            <label for="Termination Date">Termination Date</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillNameZip" placeholder="" @bind-Value="clientBilling.BillNameZip" />
+                            <label for="BillNameZip">Billing Name</label>
+                        </div>
+                        <label class="lbl-lg tab_section_heading">Authorize.net codes</label>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillingAddress1" placeholder="" @bind-Value="clientBilling.BillAddress1" />
+                            <label for="BillingAddress1">Billing Address 1</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="ClientProfile" placeholder="" @bind-Value="clientBilling.ClientProfile" />
+                            <label for="ClientProfile">Client Profile</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillingAddress2" placeholder="" @bind-Value="clientBilling.BillAddress2" />
+                            <label for="BillingAddress2">Billing Address 2</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="Payment Profile" placeholder="" @bind-Value="clientBilling.PaymentProfile" />
+                            <label for="PaymentProfile">Payment Profile</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillCity" placeholder="" @bind-Value="clientBilling.BillCity" />
+                            <label for="BillCity">Billing City</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillState" placeholder="" @bind-Value="clientBilling.BillState" />
+                            <label for="BillState">Billing State</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillZip" placeholder="" @bind-Value="clientBilling.BillZip" />
+                            <label for="BillZip">Billing Zip</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="pastDueStatus" placeholder="" @bind-Value="clientBilling.PastDueStatus" />
+                            <label for="pastDueStatus">Past Due Status</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="BillingCycle" placeholder="" @bind-Value="clientBilling.BillingCycle" />
+                            <label for="BillingCycle">Billing Cycle</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3 radio_toggle">    
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="Invoice Email" placeholder="" @bind-Value="clientBilling.InvoiceEmail" />
+                            <label for="InvoiceEmail">Invoice Email</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="DetailEmail" placeholder="" @bind-Value="clientBilling.DetailEmail" />
+                            <label for="DetailEmail">Detail Email</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="LastPaymentDate" placeholder="" @bind-Value="clientBilling.LastPaymentDate" />
+                            <label for="LastPaymentDate">Last Payment</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CurrentBalance" placeholder="" @bind-Value="clientBilling.CurrentBalance" />
+                            <label for="CurrentBalance">Current Balance</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="PurchaseOrder" placeholder="" @bind-Value="clientBilling.PurchaseOrder" />
+                            <label for="PurchaseOrder">Purchase Order</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="SetupFee" placeholder="" @bind-Value="clientBilling.SetUpFee" />
+                            <label for="SetupFee">Setup Fee</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="startDate" placeholder="" @bind-Value="clientGeneral.StarsDate" />
+                            <label for="startDate">Start Date</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="ProfLicense" placeholder="" @bind-Value="clientGeneral.ProfessionalLicense" />
+                            <label for="ProfLicense">Prof. License</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CompanyID" placeholder="" @bind-Value="clientGeneral.CompanyID" />
+                            <label for="CompanyID">Company ID</label>
+                        </div>                    
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="paymentProfile" placeholder="" @bind-Value="clientGeneral.PaymentProfile" />
+                            <label for="paymentProfile">Payment Profile</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CaseDescription" placeholder="" @bind-Value="clientGeneral.CaseDescription" />
+                            <label for="CaseDescription">Case Description</label>
+                        </div>
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CaseFormat" placeholder="" @bind-Value="clientGeneral.CaseFormat" />
+                            <label for="CaseFormat">Case Format</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="CompanyID" placeholder="" @bind-Value="clientGeneral.CompanyID" />
+                            <label for="CompanyID">Company ID</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="SystemCode" placeholder="" @bind-Value="clientGeneral.SystemCode" />
+                            <label for="SystemCode">System Code</label>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="form-floating input-medium">
+                            <InputText type="text" class="form-control" id="SuppressPrice" placeholder="" @bind-Value="clientGeneral.SuppressPrice" />
+                            <label for="SuppressPrice">Suppress Price</label>
+                        </div>
+                    </div>
+                    <hr />
+                </EditForm>
+            </div>
+        </div>   
+    }
+</div>
+<div class="displayClientResult" hidden="@_displayClientNameSearch">
+    <div class="tabcontent">
+        <div class="show-Results">
+     <EditForm Model="@client" class="p-2 form-lrg-scrn">
+          <div class="row mb-3">
+                <label class="lbl-heading col-form-label">Name search <span> - </span></label>
+                <div class="input-large input_section_heading">
+                     <InputText type="text" id="nameSearchValue" class="form-control" readonly @bind-Value="_clientLookupModel.Name" />
+                </div>
+          </div>
+    </EditForm>
+        </div>
+    </div>
+    <MudTable Items="@responseTable" Hover="true" Breakpoint="Breakpoint.Sm" @ref="mudClient" Variants="Variant.Outlined" Dense="true"  OnRowClick="RowClickEvent" RowClassFunc="@SelectedRowClassFunc" T="Client" @bind-SelectedItem="SelectedClient">
+    <HeaderContent>
+        <MudTh>Account</MudTh>
+        <MudTh>Full Name</MudTh>
+        <MudTh>Address</MudTh>
+        <MudTh>City</MudTh>
+        <MudTh>State</MudTh>
+        <MudTh>Zip</MudTh>
+        <MudTh>T Date</MudTh>
+    </HeaderContent>
+    <RowTemplate Context="context">
+        <MudTd DataLabel="Account">@context.Account</MudTd>
+        <MudTd DataLabel="FullName">@context.FullName</MudTd>
+        <MudTd DataLabel="Address 1">@context.Address1</MudTd>
+        <MudTd DataLabel="Address 2">@context.Address2</MudTd>
+        <MudTd DataLabel="City">@context.City</MudTd>
+        <MudTd DataLabel="State">@context.State</MudTd>
+        <MudTd DataLabel="State">@context.Zip</MudTd>
+        <MudTd DataLabel="State">@context.TerminationDate</MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+</div>
+
+@code {
+    [Inject] private NavigationManager navigationManager { get; set; }
+    Client SelectedClient { get; set; }
+    private bool _displayClientNameSearch = true;
+    private bool _displayClientNumberSearch = true;
+    private bool _hide { get; set; } = false;
+    private bool _show { get; set; } = true;
+    private bool _showLookupResults;
+    private int selectedRowNumber = 0;
+    private MudTable<Client> mudClient;
+    private List<string> clickedEvents = new();
+    private bool tab2 = true;
+    private bool tab3 = false;
+    private bool tab4 = false;
+    private bool tab5 = false;
+    private bool tab6 = false;
+    private bool _bill_hide { get; set; } = true;
+    private string _bill_btn_name { get; set; } = "More Details";
+    private int count = 0;
+    private string clientCall = "";
+
+    public void DisplayTab(int TabNumber)
+    {
+        switch (TabNumber)
+        {
+            case 2:
+                this.tab2 = true;
+                this.tab3 = false;
+                this.tab4 = false;
+                this.tab5 = false;
+                this.tab6 = false;
+                break;
+            case 3:
+                this.tab2 = false;
+                this.tab3 = true;
+                this.tab4 = false;
+                this.tab5 = false;
+                this.tab6 = false;
+                break;
+            case 4:
+                this.tab2 = false;
+                this.tab3 = false;
+                this.tab4 = true;
+                this.tab5 = false;
+                this.tab6 = false;
+                break;
+            case 5:
+                this.tab2 = false;
+                this.tab3 = false;
+                this.tab4 = false;
+                this.tab5 = true;
+                this.tab6 = false;
+                break;
+            case 6:
+                this.tab2 = false;
+                this.tab3 = false;
+                this.tab4 = false;
+                this.tab5 = false;
+                this.tab6 = true;
+                break;
+        }
+    }
+
+    private void ToggleLookupResult()
+    {
+        if (_clientLookupModel.Name != null)
+        {
+            _displayClientNameSearch = false;
+            _displayClientNumberSearch = true;
+            _show = true;
+            _hide = true;
+            ClientTable();
+        }
+        else if (_clientLookupModel.ClientNumber != null)
+        {
+            LookupClient();
+        }
+    }
+    private void ClientTable()
+    {
+        if (IsValidClientName())
+        {
+            try
+            {
+                client = GetClientList(_clientLookupModel.Name);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+        }
+    }
+
+    private void ToggleBilling()
+    {
+        _bill_hide = !_bill_hide;
+        if (_bill_hide)
+        {
+            _bill_btn_name = "More Details";
+        }
+        else
+        {
+            _bill_btn_name = "Less Details";
+        }
+    }
+    private void StaticResult()
+    {
+        _hide = true;
+        _show = false;
+
+    }
+    private void LookupClient()
+    {
+        if (IsValidClientNumber())
+        {
+            _displayClientNumberSearch = false;
+            _displayClientNameSearch = true;
+            _show = false;
+            _hide = true;
+            try
+            {
+                client = GetClientInfo(_clientLookupModel.ClientNumber);
+                clientBilling = GetClientBillingInfo(_clientLookupModel.ClientNumber);
+                clientGeneral = GetClientGeneralInfo(_clientLookupModel.ClientNumber);
+                //     client.Account = _clientLookupModel.ClientNumber;
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+
+            if ((!string.IsNullOrEmpty(client.Account)) && (!string.IsNullOrEmpty(clientBilling.Account)) && (!string.IsNullOrEmpty(clientGeneral.Account)))
+            {
+                return;
+            } 
+        }
+        _show = true;
+    }
+
+    private bool IsValidClientNumber()
+    {
+        // return !string.IsNullOrWhiteSpace(client.Account);
+        return !string.IsNullOrWhiteSpace(_clientLookupModel.ClientNumber);
+    }
+    private bool IsValidClientName()
+    {
+        return !string.IsNullOrWhiteSpace(_clientLookupModel.Name);
+    }
+    private static Client GetClientInfo(string account, string ipAddress = "", Guid workstationId = new())
+    {
+        var client = new Client();
+
+        var parameters = new Dictionary<string, object>()
+        {
+            {"Account", account},
+        };
+
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            parameters.Add("IpAddress", ipAddress);
+        }
+
+        if (workstationId != Guid.Empty)
+        {
+            parameters.Add("WorkstationId", workstationId.ToJBaseString());
+        }
+
+        var requestBody = new jBASEApiRequestBody("GetClientData", parameters).ParameterString;
+
+        var response = jBASEApi.GetResponse(requestBody);
+        if (response.IsSuccessful)
+        {
+            if (response.Content != null)
+            {
+                client = Client.FromJson(response.Content);
+                var responseClient = client.Account ?? throw new NullReferenceException("An account was not identified, please try again.");
+            }
+
+            if (client.ApiStatus == false)
+            {
+                Console.Out.WriteLine(client.ApiStatusMessage);
+            }
+            else
+            {
+                client.Account = account;
+            }
+        }
+        else
+        {
+            Console.Out.WriteLine("There was a problem processing your request.<br /> Please wait 5 minutes and try again. EC84");
+        }
+
+        return client;
+    }
+
+    private static ClientBilling GetClientBillingInfo(string account, string ipAddress = "", Guid workstationId = new())
+    {
+        var client = new ClientBilling();
+
+        var parameters = new Dictionary<string, object>()
+        {
+            {"Account", account},
+        };
+
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            parameters.Add("IpAddress", ipAddress);
+        }
+
+        if (workstationId != Guid.Empty)
+        {
+            parameters.Add("WorkstationId", workstationId.ToJBaseString());
+        }
+
+        var requestBody = new jBASEApiRequestBody("GetClientData", parameters).ParameterString;
+
+        var response = jBASEApi.GetResponse(requestBody);
+
+        if (response.IsSuccessful)
+        {
+            if (response.Content != null)
+            {
+                client = ClientBilling.FromJson(response.Content);
+            }
+
+            if (client.ApiStatus == false)
+            {
+                Console.Out.WriteLine(client.ApiStatusMessage);
+            }
+            else
+            {
+                client.Account = account;
+            }
+        }
+        else
+        {
+            Console.Out.WriteLine("There was a problem processing your request.<br /> Please wait 5 minutes and try again. EC84");
+        }
+        return client;      
+    }
+
+    private static ClientGeneral GetClientGeneralInfo(string account, string ipAddress = "", Guid workstationId = new())
+    {
+        var client = new ClientGeneral();
+
+        var parameters = new Dictionary<string, object>()
+        {
+            {"Account", account},
+        };
+
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            parameters.Add("IpAddress", ipAddress);
+        }
+
+        if (workstationId != Guid.Empty)
+        {
+            parameters.Add("WorkstationId", workstationId.ToJBaseString());
+        }
+
+        var requestBody = new jBASEApiRequestBody("GetClientData", parameters).ParameterString;
+
+        var response = jBASEApi.GetResponse(requestBody);
+
+        if (response.IsSuccessful)
+        {
+            if (response.Content != null)
+            {
+                client = ClientGeneral.FromJson(response.Content);
+            }
+
+            if (client.ApiStatus == false)
+            {
+                Console.Out.WriteLine(client.ApiStatusMessage);
+            }
+            else
+            {
+                client.Account = account;
+            }
+        }
+        else
+        {
+            Console.Out.WriteLine("There was a problem processing your request.<br /> Please wait 5 minutes and try again. EC84");
+        }
+
+        return client;
+    }
+
+    private Client GetClientList(string name, string ipAddress = "", Guid workstationId = new())
+    {
+        var table = new Client();
+        var clientList = new ClientList();
+        var parameters = new Dictionary<string, object>()
+        {
+            {"Name", name},
+        };
+
+        if (!string.IsNullOrEmpty(ipAddress))
+        {
+            parameters.Add("IpAddress", ipAddress);
+        }
+
+        if (workstationId != Guid.Empty)
+        {
+            parameters.Add("WorkstationId", workstationId.ToJBaseString());
+        }
+
+        var requestBody = new jBASEApiRequestBody("GetClientList", parameters).ParameterString;
+
+        var response = jBASEApi.GetResponse(requestBody);  
+
+        if (response.IsSuccessful)
+        {
+            if (response.Content != null)
+            {
+
+                var tableResponse = ClientList.FromJson(response.Content);
+
+                responseTable = tableResponse.Clients.ToList();
+
+            }
+            if (table.ApiStatus == false)
+            {
+                Console.Out.WriteLine(table.ApiStatusMessage);
+            }
+            else
+            {
+                table.ShortName = name;
+            }
+        }
+        else
+        {
+            Console.Out.WriteLine("There was a problem processing your request.<br /> Please wait 5 minutes and try again. EC84");
+        }
+
+        return table;
+    }
+    private void ProcessClientObjectAttributes()
+    {
+        if (string.IsNullOrEmpty(client.Account)) return;
+
+        _dataList.Clear();
+
+        var type = client.GetType();
+        var properties = type.GetProperties().Where(p => p.CanRead);
+
+        Func<PropertyInfo, object> getValue = p => p.GetIndexParameters().Any()
+            ? p.PropertyType.Name + "[]"
+            : p.GetValue(client, null);
+
+        var items = (from p in properties
+                     select new KeyValuePair<string, object>(
+                         p.Name, getValue(p))).ToArray().OrderBy(x => x.Key);
+
+        //move items into a List to prevent enumerating the items list multiple times below
+        var attributes = items.ToList();
+
+        if (attributes.None()) return;
+
+        foreach (var attribute in attributes)
+        {
+            if (attribute.Key.In(
+                "Password",
+                "NeedsMultifactor",
+                "MultifactorDescription",
+                "MultifactorAppSecret",
+                "VerifyIp",
+                "VerifyWs",
+                "CurrentUser",
+                "ApiStatus",
+                "ErrorCode",
+                "ResponseCode",
+                "Status"
+                ))
+            {
+                continue;
+            }
+
+            var key = Regex.Replace(attribute.Key, "([a-z](?=[A-Z]|[0-9])|[A-Z](?=[A-Z][a-z]|[0-9])|[0-9](?=[^0-9]))", "$1 ");
+
+            var data = "";
+
+            if (attribute.Value != null)
+            {
+                switch (attribute.Key)
+                {
+                    case "NavigationOptions":
+                        //split the string into a more readable list ordered alphabetically
+                        data = attribute.Value.ToString().Split(',').OrderBy(x => x).ToDelimitedString();
+                        break;
+                    case "PasswordLastChangeDate":
+                        //remove the time portion since we don't log time with password changes
+                        data = attribute.Value.ToString().Replace(" 12:00:00 AM", "");
+                        break;
+                    case "MultifactorBypassCookieMaxAge":
+                        if (int.TryParse(attribute.Value.ToString(), out var result))
+                        {
+                            data = result + " seconds (" + result / 3600 + " hours)";
+                        }
+                        else
+                        {
+                            data = attribute.Value.ToString();
+                        }
+                        break;
+                    default:
+                        data = attribute.Value.ToString();
+                        break;
+                }
+            }
+            var kvp = new KeyValuePair<string, string>(key, data ?? string.Empty);
+            _dataList.Add(kvp);
+        }
+    }
+    // Click and record event for row selection 
+    private string SelectedRowClassFunc(Client client, int rowNumber)
+    {
+        if (mudClient.SelectedItem != null && mudClient.SelectedItem.Equals(client))
+        {
+            return "selected"; 
+
+        }
+        return string.Empty;
+    }
+
+    private async void RowClickEvent(TableRowClickEventArgs<Client> tableRowClickEventArgs)
+    {
+
+
+        if (clientCall != tableRowClickEventArgs.Item.Account)
+        {
+            count = 0;
+            count = tableRowClickEventArgs.Item.ClientCount;
+            count = 1;
+            clientCall = tableRowClickEventArgs.Item.Account;
+        }
+        else if (clientCall == tableRowClickEventArgs.Item.Account)
+        {
+            count = 2;
+        }
+        if (count == 2)
+        {
+            _clientLookupModel.ClientNumber = tableRowClickEventArgs.Item.Account; 
+            LookupClient();
+            _displayClientNameSearch = true;
+            _displayClientNumberSearch = false;
+            count = 0;
+            _show = false;
+        }
+
+    }
+
+    private void ToggleForm()
+    {
+        _hide = !_hide;
+        if ((_hide = true) && (_clientLookupModel.ClientNumber != null || _clientLookupModel.Name != null))
+        {
+            _show = false;
+            _showLookupResults = true;
+
+        }
+        else 
+        {
+            _hide = false;
+            _show = true;
+            _clientLookupModel.Name = default;
+            _showLookupResults = false;
+        }
+    }
+    private void NavigateToLookup()
+    {
+        _hide = !_hide;
+        if (_hide)
+        {
+            _show = false;
+        }
+        else
+        {
+            navigationManager.NavigateTo("/Index");
+            _show = true;
+        }
+    }
+    private void StaticLookup()
+    {
+        _hide = false;
+        _show = true;
+
+    }
+
+}

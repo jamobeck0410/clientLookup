@@ -1,0 +1,77 @@
+is_global = true
+build_property.TargetFramework = net7.0
+build_property.TargetPlatformMinVersion = 
+build_property.UsingMicrosoftNETSdkWeb = true
+build_property.ProjectTypeGuids = 
+build_property.InvariantGlobalization = 
+build_property.PlatformNeutralAssembly = 
+build_property.EnforceExtendedAnalyzerRules = 
+build_property._SupportedPlatformList = Linux,macOS,Windows
+build_property.RootNamespace = ClientAdminSample
+build_property.RootNamespace = ClientAdminSample
+build_property.ProjectDir = C:\Users\Kyle\source\repos\ClientAdminSample\ClientAdminSample\
+build_property.RazorLangVersion = 7.0
+build_property.SupportLocalizedComponentNames = 
+build_property.GenerateRazorMetadataSourceChecksumAttributes = 
+build_property.MSBuildProjectDirectory = C:\Users\Kyle\source\repos\ClientAdminSample\ClientAdminSample
+build_property._RazorSourceGeneratorDebug = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/App.razor]
+build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Components/ResultsTable.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSZXN1bHRzVGFibGUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/ClientApps.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ2xpZW50QXBwcy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/ClientLookup.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ2xpZW50TG9va3VwLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/ClientResult.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ2xpZW50UmVzdWx0LnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/Index.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSW5kZXgucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/NewClients.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcTmV3Q2xpZW50cy5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/PendingApps.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcUGVuZGluZ0FwcHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/Tokens.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVG9rZW5zLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/UserLookup.razor]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVXNlckxvb2t1cC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/_Imports.razor]
+build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Shared/MainLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE1haW5MYXlvdXQucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-6awt5o2623
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Shared/NavMenu.razor]
+build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE5hdk1lbnUucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = b-y0nwm7w2vo
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/Error.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRXJyb3IuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Kyle/source/repos/ClientAdminSample/ClientAdminSample/Pages/_Host.cshtml]
+build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX0hvc3QuY3NodG1s
+build_metadata.AdditionalFiles.CssScope = 
